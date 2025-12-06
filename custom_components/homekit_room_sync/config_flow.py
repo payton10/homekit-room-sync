@@ -39,6 +39,8 @@ class HomeKitRoomSyncConfigFlow(
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._bridge_name: str | None = None
+        # Store the human-friendly bridge name for display in titles/placeholders
+        self._bridge_friendly_name: str | None = None
 
     @staticmethod
     @callback
@@ -96,6 +98,7 @@ class HomeKitRoomSyncConfigFlow(
 
         if user_input is not None:
             self._bridge_name = user_input[CONF_BRIDGE_NAME]
+            self._bridge_friendly_name = available_bridges.get(self._bridge_name)
 
             # Validate the bridge exists
             if self._bridge_name not in available_bridges:
@@ -152,7 +155,7 @@ class HomeKitRoomSyncConfigFlow(
 
             # Create the config entry
             return self.async_create_entry(
-                title=f"HomeKit Bridge: {self._bridge_name}",
+    title=f"HomeKit Bridge: {self._bridge_friendly_name or self._bridge_name}",
                 data={
                     CONF_BRIDGE_NAME: self._bridge_name,
                     CONF_DEFAULT_ROOM: default_room,
@@ -168,7 +171,9 @@ class HomeKitRoomSyncConfigFlow(
             step_id="room",
             data_schema=schema,
             errors=errors,
-            description_placeholders={"bridge_name": self._bridge_name},
+    description_placeholders={
+        "bridge_name": self._bridge_friendly_name or self._bridge_name
+    },
         )
 
 
@@ -185,9 +190,9 @@ class HomeKitRoomSyncOptionsFlow(OptionsFlow):
         Args:
             config_entry: The config entry to modify.
         """
-        # self.config_entry is automatically set by the parent class in newer HA versions
-        # We don't need to set it manually.
-        pass
+        # Store the config entry for backward compatibility with HA versions
+        # that don't set it automatically on OptionsFlow.
+        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -243,6 +248,11 @@ class HomeKitRoomSyncOptionsFlow(OptionsFlow):
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "bridge_name": self.config_entry.data[CONF_BRIDGE_NAME]
+        # Prefer the entry title (which contains the friendly name) if available
+        "bridge_name": self.config_entry.title.replace(
+            "HomeKit Bridge: ", ""
+        )
+        if self.config_entry.title
+        else self.config_entry.data[CONF_BRIDGE_NAME]
             },
         )

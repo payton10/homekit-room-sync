@@ -127,7 +127,7 @@ This integration directly modifies HomeKit Bridge storage files located in your 
 
 ### Supported Home Assistant Versions
 
-- Home Assistant 2024.1.0 or newer
+- Home Assistant 2025.12.1 or newer
 
 ### Known Limitations
 

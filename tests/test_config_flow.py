@@ -32,9 +32,9 @@ class TestHomeKitRoomSyncConfigFlow:
         with patch(
             "custom_components.homekit_room_sync.config_flow."
             "HomeKitRoomSyncCoordinator.get_available_bridges",
-            return_value=[],
+            return_value={},
         ):
-            flow.hass.async_add_executor_job = AsyncMock(return_value=[])
+            flow.hass.async_add_executor_job = AsyncMock(return_value={})
             result = await flow.async_step_user()
 
         assert result["type"] == "abort"
@@ -55,7 +55,7 @@ class TestHomeKitRoomSyncConfigFlow:
         with patch(
             "custom_components.homekit_room_sync.config_flow."
             "HomeKitRoomSyncCoordinator.get_available_bridges",
-            return_value=["bridge1", "bridge2"],
+            return_value={"bridge1": "Bridge 1", "bridge2": "Bridge 2"},
         ):
             result = await flow.async_step_user()
 
@@ -80,7 +80,7 @@ class TestHomeKitRoomSyncConfigFlow:
         with patch(
             "custom_components.homekit_room_sync.config_flow."
             "HomeKitRoomSyncCoordinator.get_available_bridges",
-            return_value=["bridge1"],
+            return_value={"bridge1": "Bridge 1"},
         ):
             result = await flow.async_step_user()
 
@@ -102,7 +102,7 @@ class TestHomeKitRoomSyncConfigFlow:
         with patch(
             "custom_components.homekit_room_sync.config_flow."
             "HomeKitRoomSyncCoordinator.get_available_bridges",
-            return_value=["bridge1", "bridge2"],
+            return_value={"bridge1": "Bridge 1", "bridge2": "Bridge 2"},
         ):
             result = await flow.async_step_user({CONF_BRIDGE_NAME: "bridge1"})
 
@@ -130,6 +130,22 @@ class TestHomeKitRoomSyncConfigFlow:
             CONF_BRIDGE_NAME: "bridge1",
             CONF_DEFAULT_ROOM: "Living Room",
         }
+
+    @pytest.mark.asyncio
+    async def test_step_room_uses_friendly_title(
+        self, flow: HomeKitRoomSyncConfigFlow, mock_area_registry: MagicMock
+    ) -> None:
+        """Test room step uses friendly bridge name for title."""
+        flow._bridge_name = "bridge1"
+        flow._bridge_friendly_name = "Living Room Bridge"
+
+        with patch(
+            "custom_components.homekit_room_sync.config_flow.area_registry.async_get",
+            return_value=mock_area_registry,
+        ):
+            result = await flow.async_step_room({CONF_DEFAULT_ROOM: ""})
+
+        assert result["title"] == "HomeKit Bridge: Living Room Bridge"
 
     @pytest.mark.asyncio
     async def test_step_room_no_default_room(

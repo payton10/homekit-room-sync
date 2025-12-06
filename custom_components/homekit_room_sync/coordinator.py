@@ -15,7 +15,11 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import area_registry, device_registry, entity_registry
+from homeassistant.helpers import (
+    area_registry,
+    device_registry,
+    entity_registry,
+)
 
 from .const import (
     CONF_BRIDGE_NAME,
@@ -95,7 +99,10 @@ class HomeKitRoomSyncCoordinator:
 
         # Check if the storage file exists
         if not await self._file_exists(storage_file):
-            _LOGGER.warning("HomeKit bridge storage file not found: %s", storage_file)
+            _LOGGER.warning(
+                "HomeKit bridge storage file not found: %s",
+                storage_file,
+            )
             return False
 
         try:
@@ -155,7 +162,10 @@ class HomeKitRoomSyncCoordinator:
                     return True
                 return False
 
-            _LOGGER.debug("No room changes needed for bridge: %s", self._bridge_name)
+            _LOGGER.debug(
+                "No room changes needed for bridge: %s",
+                self._bridge_name,
+            )
             return True
 
         except Exception as err:
@@ -169,9 +179,9 @@ class HomeKitRoomSyncCoordinator:
     def _get_room_for_entity(
         self,
         entity_id: str,
-        entity_registry: EntityRegistry,
-        device_registry: DeviceRegistry,
-        area_registry: AreaRegistry,
+        entity_reg: EntityRegistry,
+        device_reg: DeviceRegistry,
+        area_reg: AreaRegistry,
     ) -> str | None:
         """Determine the HomeKit room name for an entity.
 
@@ -182,15 +192,15 @@ class HomeKitRoomSyncCoordinator:
 
         Args:
             entity_id: The entity ID to look up.
-            entity_registry: The entity registry.
-            device_registry: The device registry.
-            area_registry: The area registry.
+            entity_reg: The entity registry.
+            device_reg: The device registry.
+            area_reg: The area registry.
 
         Returns:
             The room name, or None if no area could be determined.
         """
         # Try to get the entity entry
-        entity_entry = entity_registry.async_get(entity_id)
+        entity_entry = entity_reg.async_get(entity_id)
         if entity_entry is None:
             return self._default_room
 
@@ -201,13 +211,13 @@ class HomeKitRoomSyncCoordinator:
             area_id = entity_entry.area_id
         # Fall back to device's area
         elif entity_entry.device_id:
-            device_entry = device_registry.async_get(entity_entry.device_id)
+            device_entry = device_reg.async_get(entity_entry.device_id)
             if device_entry and device_entry.area_id:
                 area_id = device_entry.area_id
 
         # Look up the area name
         if area_id:
-            area_entry = area_registry.async_get_area(area_id)
+            area_entry = area_reg.async_get_area(area_id)
             if area_entry:
                 return str(area_entry.name)
 
@@ -248,8 +258,9 @@ class HomeKitRoomSyncCoordinator:
             if "data" in data:
                 return data
 
-            # Handle flat format (no "data" wrapper)
-            return {"data": data}
+            # Missing required "data" key -> treat as invalid
+            _LOGGER.error("Storage file missing 'data' key: %s", path)
+            return None
         except json.JSONDecodeError as err:
             _LOGGER.error("Failed to parse storage file %s: %s", path, err)
             return None
@@ -257,7 +268,11 @@ class HomeKitRoomSyncCoordinator:
             _LOGGER.error("Failed to read storage file %s: %s", path, err)
             return None
 
-    async def _write_storage_file(self, path: Path, data: dict[str, Any]) -> bool:
+    async def _write_storage_file(
+        self,
+        path: Path,
+        data: dict[str, Any],
+    ) -> bool:
         """Write data to a storage file.
 
         Args:
@@ -286,7 +301,11 @@ class HomeKitRoomSyncCoordinator:
         """
         backup_path = path.with_suffix(f"{path.suffix}.backup")
         try:
-            await self.hass.async_add_executor_job(shutil.copy2, path, backup_path)
+            await self.hass.async_add_executor_job(
+                shutil.copy2,
+                path,
+                backup_path,
+            )
             _LOGGER.debug("Created backup: %s", backup_path)
             return True
         except OSError as err:
@@ -342,10 +361,38 @@ class HomeKitRoomSyncCoordinator:
                 prefix_len = len(HOMEKIT_STORAGE_PREFIX)
                 suffix_len = len(HOMEKIT_STORAGE_SUFFIX)
                 entry_id = file.name[prefix_len:-suffix_len]
-                
+
                 if entry_id:
-                    # Use friendly name if available, otherwise use ID
-                    friendly_name = hk_entries.get(entry_id, f"Bridge {entry_id}")
+                    # Prefer friendly name from HomeKit config entry
+                    friendly_name = hk_entries.get(entry_id)
+
+                    # Fallback to name stored in the bridge state file
+                    if not friendly_name:
+                        friendly_name = cls._extract_name_from_storage(file)
+
+                    # Final fallback to ID-based name
+                    if not friendly_name:
+                        friendly_name = f"Bridge {entry_id}"
+
                     bridges[entry_id] = friendly_name
 
         return bridges
+
+    @staticmethod
+    def _extract_name_from_storage(path: Path) -> str | None:
+        """Try to read the bridge's friendly name from its storage file."""
+        try:
+            content = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
+
+        data = (
+            content.get("data", content)
+            if isinstance(content, dict)
+            else None
+        )
+        if isinstance(data, dict):
+            name = data.get("name") or data.get("bridge_name")
+            if isinstance(name, str) and name.strip():
+                return name
+        return None

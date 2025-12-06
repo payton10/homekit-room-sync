@@ -240,9 +240,11 @@ class TestHomeKitRoomSyncCoordinator:
     def test_get_available_bridges(
         self, mock_hass: MagicMock, temp_storage_dir: Path
     ) -> None:
-        """Test discovering available HomeKit bridges."""
+        """Test discovering available HomeKit bridges with friendly names."""
         # Create mock bridge files
-        (temp_storage_dir / "homekit.bridge1.state").write_text("{}")
+        (temp_storage_dir / "homekit.bridge1.state").write_text(
+            '{"data": {"name": "Living Room Bridge"}}'
+        )
         (temp_storage_dir / "homekit.bridge2.state").write_text("{}")
         (temp_storage_dir / "other_file.json").write_text("{}")
 
@@ -250,19 +252,32 @@ class TestHomeKitRoomSyncCoordinator:
             return_value=str(temp_storage_dir.parent)
         )
 
+        # Mock HomeKit config entries to provide friendly names
+        entry1 = MagicMock(entry_id="bridge1", data={"name": "Living Room Bridge"})
+        entry1.title = "Living Room Bridge"
+        entry2 = MagicMock(entry_id="bridge2", data={"name": "Bedroom Bridge"})
+        entry2.title = "Bedroom Bridge"
+        mock_hass.config_entries.async_entries = MagicMock(
+            return_value=[entry1, entry2]
+        )
+
         bridges = HomeKitRoomSyncCoordinator.get_available_bridges(mock_hass)
 
-        assert bridges == ["bridge1", "bridge2"]
+        assert bridges == {
+            "bridge1": "Living Room Bridge",
+            "bridge2": "Bedroom Bridge",
+        }
 
     def test_get_available_bridges_no_storage(
         self, mock_hass: MagicMock, tmp_path: Path
     ) -> None:
         """Test discovering bridges when storage dir doesn't exist."""
         mock_hass.config.path = MagicMock(return_value=str(tmp_path / "nonexistent"))
+        mock_hass.config_entries.async_entries = MagicMock(return_value=[])
 
         bridges = HomeKitRoomSyncCoordinator.get_available_bridges(mock_hass)
 
-        assert bridges == []
+        assert bridges == {}
 
 
 class TestCoordinatorStorageOperations:
