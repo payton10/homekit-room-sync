@@ -22,6 +22,7 @@ help:
 	@echo "Deployment:"
 	@echo "  deploy           Deploy to HA server (uses .env or HA_HOST env var)"
 	@echo "  deploy HOST=x    Deploy to specific host"
+	@echo "  deploy ARGS='--dry-run --restart host'  Pass args to deploy.sh"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  clean       Remove build artifacts and caches"
@@ -98,11 +99,10 @@ bump-major:
 	echo "Bumped version: $$current -> $$new"
 
 # Deploy to Home Assistant server
-# Usage: make deploy or make deploy HOST=192.168.1.100
+# Usage:
+#   make deploy
+#   make deploy HOST=192.168.1.100
+#   make deploy ARGS="--dry-run --restart 192.168.1.100"
 deploy:
-ifdef HOST
-	./scripts/deploy.sh $(HOST)
-else
-	./scripts/deploy.sh
-endif
+	./scripts/deploy.sh $(ARGS) $(HOST)
 
