@@ -6,12 +6,6 @@
 [![Contributors Welcome](https://img.shields.io/badge/Contributors-Welcome-brightgreen.svg)](https://github.com/lcrostarosa/homekit-room-sync/blob/master/CONTRIBUTING.md)
 
 > [!CAUTION]
-> **This project is in active development and is NOT ready for production use.**
-> 
-> - Pre-alpha status: Expect breaking changes and incomplete features
-> - Untested: Has not been thoroughly tested in real environments
-> - Use at your own risk: May cause issues with your HomeKit setup
->
 > **DISCLAIMER: This integration directly modifies internal Home Assistant storage files. YOU MUST BACK UP YOUR HOME ASSISTANT CONFIGURATION BEFORE INSTALLING OR USING THIS INTEGRATION. The authors are not responsible for any data loss or corruption.**
 
 A Home Assistant custom integration that automatically synchronizes your Home Assistant Areas with HomeKit Room assignments.
