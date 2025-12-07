@@ -320,8 +320,7 @@ class HomeKitRoomSyncOptionsFlow(BridgeFlowMixin, OptionsFlow):
     """Handle options flow for HomeKit Room Sync."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
-        self.config_entry = config_entry
-        OptionsFlow.__init__(self, config_entry)
+        self._config_entry = config_entry
         BridgeFlowMixin.__init__(self)
 
     async def async_step_init(
