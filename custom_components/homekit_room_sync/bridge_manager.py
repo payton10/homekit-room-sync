@@ -235,7 +235,8 @@ class HomeKitBridgeManager:
         allowed_entities: list[str],
         rooms: dict[str, str | None],
     ) -> dict[str, object] | None:
-        new_data = copy.deepcopy(homekit_entry.data)
+        # ConfigEntry.data is a MappingProxyType; convert to a mutable dict before copying.
+        new_data = copy.deepcopy(dict(homekit_entry.data))
         new_data["filter"] = {
             "include_entities": allowed_entities,
             "exclude_entities": [],
