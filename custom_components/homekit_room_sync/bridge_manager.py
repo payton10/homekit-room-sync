@@ -218,9 +218,18 @@ class HomeKitBridgeManager:
             )
             return True
 
+        _opts = dict(homekit_entry.options)
+        _opt_ec = dict(_opts.get("entity_config") or {})
+        for _eid, _cfg in (updated_data.get("entity_config") or {}).items():
+            _merged = dict(_opt_ec.get(_eid, {}))
+            _merged.update(_cfg)
+            _opt_ec[_eid] = _merged
+        _opts["entity_config"] = _opt_ec
+        _opts["filter"] = updated_data.get("filter")
         self._hass.config_entries.async_update_entry(
             homekit_entry,
             data=updated_data,
+            options=_opts,
         )
         await self._hass.config_entries.async_reload(homekit_entry.entry_id)
         _LOGGER.info(
