@@ -295,7 +295,7 @@ class HomeKitBridgeManager:
         existing_entity_config = dict(new_data.get("entity_config") or {})
         for entity_id, area_name in rooms.items():
             existing_entry = existing_entity_config.get(entity_id, {})
-            existing_entry["name"] = None
+            existing_entry.pop("name", None)
             existing_entry["room"] = area_name
             existing_entity_config[entity_id] = existing_entry
         new_data["entity_config"] = existing_entity_config
