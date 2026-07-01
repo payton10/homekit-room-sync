@@ -279,8 +279,8 @@ class HomeKitBridgeManager:
         device = dev_reg.async_get(device_id)
         return device.area_id if device else None
 
-    @staticmethod
     def _build_updated_data(
+        self,
         homekit_entry: ConfigEntry,
         allowed_entities: list[str],
         rooms: dict[str, str | None],
@@ -295,7 +295,12 @@ class HomeKitBridgeManager:
         existing_entity_config = dict(new_data.get("entity_config") or {})
         for entity_id, area_name in rooms.items():
             existing_entry = existing_entity_config.get(entity_id, {})
-            existing_entry.pop("name", None)
+            _st = self._hass.states.get(entity_id)
+            _friendly = _st.attributes.get("friendly_name") if _st else None
+            if _friendly:
+                existing_entry["name"] = _friendly
+            else:
+                existing_entry.pop("name", None)
             existing_entry["room"] = area_name
             existing_entity_config[entity_id] = existing_entry
         new_data["entity_config"] = existing_entity_config
